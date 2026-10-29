@@ -23,13 +23,22 @@ const NewsFeed = () => {
     const controller = new AbortController();
     fetch('/api/news', { signal: controller.signal })
       .then(async (res) => {
-        if (res.status === 404) {
+        /* The dev server has no functions, and its history fallback answers an
+           unknown GET with index.html and a 200 - not a 404. Trusting the
+           status here meant parsing HTML as a feed. Check the content type. */
+        const isJson = (res.headers.get('content-type') || '').includes('application/json');
+        if (res.status === 404 || !isJson) {
           throw new Error(
             'The feed only runs on the deployed site, not on the local dev server.'
           );
         }
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || `The feed returned ${res.status}.`);
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          throw new Error((data && data.error) || `The feed returned ${res.status}.`);
+        }
+        if (!data || !Array.isArray(data.items)) {
+          throw new Error('The feed returned an unexpected response.');
+        }
         return data;
       })
       .then((data) => setState({ status: 'ready', data, error: '' }))
@@ -40,15 +49,17 @@ const NewsFeed = () => {
     return () => controller.abort();
   }, []);
 
-  const tags = useMemo(() => {
-    if (!state.data) return [];
-    return [...new Set(state.data.items.map((i) => i.tag))].sort();
-  }, [state.data]);
+  const items = useMemo(
+    () => (Array.isArray(state.data?.items) ? state.data.items : []),
+    [state.data]
+  );
 
-  const visible = useMemo(() => {
-    if (!state.data) return [];
-    return tag === ALL ? state.data.items : state.data.items.filter((i) => i.tag === tag);
-  }, [state.data, tag]);
+  const tags = useMemo(() => [...new Set(items.map((i) => i.tag))].sort(), [items]);
+
+  const visible = useMemo(
+    () => (tag === ALL ? items : items.filter((i) => i.tag === tag)),
+    [items, tag]
+  );
 
   const pick = useCallback((t) => setTag(t), []);
 
@@ -79,7 +90,7 @@ const NewsFeed = () => {
           aria-pressed={tag === ALL}
           onClick={() => pick(ALL)}
         >
-          All <span>{state.data.items.length}</span>
+          All <span>{items.length}</span>
         </button>
         {tags.map((t) => (
           <button
@@ -89,7 +100,7 @@ const NewsFeed = () => {
             aria-pressed={tag === t}
             onClick={() => pick(t)}
           >
-            {t} <span>{state.data.items.filter((i) => i.tag === t).length}</span>
+            {t} <span>{items.filter((i) => i.tag === t).length}</span>
           </button>
         ))}
       </div>

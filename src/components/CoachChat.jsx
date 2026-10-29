@@ -47,14 +47,22 @@ const CoachChat = ({ workout }) => {
           }),
         });
 
-        if (res.status === 404) {
+        // A dev server answers an unknown route with HTML, not JSON, and not
+        // always with a 404. Check the content type rather than the status.
+        const isJson = (res.headers.get('content-type') || '').includes('application/json');
+        if (res.status === 404 || !isJson) {
           throw new Error(
             'The coach only runs on the deployed site, not on the local dev server.'
           );
         }
 
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || `The coach returned ${res.status}.`);
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          throw new Error((data && data.error) || `The coach returned ${res.status}.`);
+        }
+        if (!data || typeof data.reply !== 'string') {
+          throw new Error('The coach returned an unexpected response.');
+        }
 
         setMessages((m) => [...m, { role: 'assistant', content: data.reply }]);
         setStatus('idle');
