@@ -19,6 +19,7 @@ the Anthropic key off the client; everything else is static.
 | 04 | Archive / video | `#results` | `ExerciseGrid` or `VideoGrid` |
 
 `/build` is a separate page holding `WorkoutBuilder` and `CoachChat`.
+`/news` is a third, holding `NewsFeed`.
 
 Within the home page, navigation is anchor scrolling: `scrollToId` in
 `pages/Home.jsx`, with `[id] { scroll-margin-top: 96px }` in `base.css` keeping

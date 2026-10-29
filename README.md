@@ -120,6 +120,28 @@ an Instagram post. No library: the exercise art is served with
 `Access-Control-Allow-Origin`, so loading it with `crossOrigin="anonymous"`
 keeps the canvas exportable.
 
+## Dispatch
+
+`/news` merges RSS from eight publishers: Stronger By Science, Barbell
+Medicine, Sigma Nutrition, Precision Nutrition, STAT News, Outside and two
+ScienceDaily feeds. `api/news.js` fetches and parses them server-side, because
+feeds do not send `Access-Control-Allow-Origin` and the browser cannot read
+them directly.
+
+Feeds, not scraping. Scrapers break on markup changes and republishing scraped
+article text is infringement. Only the headline, the publisher's own RSS
+summary truncated to 190 characters, and an outbound link are passed through.
+
+The response carries `s-maxage=3600` with `stale-while-revalidate`, so the CDN
+serves it and the function runs about twice an hour however much traffic
+arrives. Hitting eight publishers on every pageview would be both slow and
+rude. One slow or broken feed cannot take the page down: feeds load in
+parallel and each failure is reported per source in the payload.
+
+To change the sources, edit `FEEDS` at the top of `api/news.js`. Barbell
+Medicine's feed is at the site root; `/blog/feed/` returns an empty document.
+Examine rate-limits rather than serving a feed.
+
 ## Coach
 
 `api/chat.js` is a Vercel function that proxies the workout and your question
@@ -167,10 +189,11 @@ once you hover or press play, which keeps a page of twelve cards light.
 ```
 public/exercises.json     the movement catalogue
 api/chat.js               Vercel function behind the coach
+api/news.js               Vercel function merging the RSS feeds
 vercel.json               SPA rewrite so /build survives a refresh
 src/
   App.js                  shell: masthead, route switch, footer
-  pages/                  Home and Build
+  pages/                  Home, Build and News
   styles/                 design tokens + base styles
   components/             one .jsx + .css pair per component
   lib/                    muscle resolution, body geometry, workout generation

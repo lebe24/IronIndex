@@ -10,6 +10,7 @@ const LINKS = [
   { label: 'Muscles', to: '/#muscles' },
   { label: 'Archive', to: '/#results' },
   { label: 'Build', to: '/build' },
+  { label: 'Dispatch', to: '/news' },
   { label: 'Colophon', to: '/#colophon' },
 ];
 
